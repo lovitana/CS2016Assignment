@@ -110,7 +110,39 @@ int linuxScheduler()
 
 		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
 		TO IMPLEMENT SCHEDULING */
-	return 0;
+	
+	//RT_FIFO?????? FIXME
+	
+	//find next prio
+	int prio = findNextPrio(0);
+	
+	//if the active list is empty, we swap active list and expired list
+	if(prio == -1){
+		TNode** temp = activeList;
+		activeList = expiredList;
+		expiredList = temp;
+		
+		//we find the new priority
+		prio = findNextPrio(0);
+		
+		//if the list is still empty then return an error cause there is no process to run
+		if(prio == -1){
+			return -1;
+		}
+	}
+	
+	//get the current process
+	int currentProc = activeList[prio]->procNum;
+	
+	//if the process has no time left
+	if(--processes[currProcess].timeLeft <= 0){
+		processes[currProcess].timeLeft = activeList[prio]->quantum;
+		remove(&activeList[prio]);
+		insert(&expiredList[prio],currProcess,processes[currProcess].quantum);
+	}
+	
+	//return current process
+	return currProcess;
 }
 #elif SCHEDULER_TYPE == 1
 
