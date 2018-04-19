@@ -121,7 +121,6 @@ int linuxScheduler()
 		TNode** temp = activeList;
 		activeList = expiredList;
 		expiredList = temp;
-		
 		//we find the new priority
 		prio = findNextPrio(0);
 		
@@ -142,7 +141,7 @@ int linuxScheduler()
 	}
 	
 	//return current process
-	return currProcess;
+	return currentProc;
 }
 #elif SCHEDULER_TYPE == 1
 
