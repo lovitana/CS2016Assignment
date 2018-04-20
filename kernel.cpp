@@ -93,7 +93,6 @@ int findNextPrio(int currPrio)
 	return -1; 
 
 }
-int count = 0;
 
 int linuxScheduler()
 {
@@ -112,9 +111,6 @@ int linuxScheduler()
 
 		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
 		TO IMPLEMENT SCHEDULING */
-	
-	//RT_FIFO?????? FIXME
-	
 	
 	
 	int processNumber = currProcess;
