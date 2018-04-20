@@ -112,7 +112,7 @@ int linuxScheduler()
 		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
 		TO IMPLEMENT SCHEDULING */
 	
-	
+	//select current process
 	int processNumber = currProcess;
 	
 	//if the process has no time left change the current process
