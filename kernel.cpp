@@ -93,6 +93,8 @@ int findNextPrio(int currPrio)
 	return -1; 
 
 }
+int count = 0;
+
 int linuxScheduler()
 {
 	/* TODO: IMPLEMENT LINUX STYLE SCHEDULER
@@ -113,35 +115,48 @@ int linuxScheduler()
 	
 	//RT_FIFO?????? FIXME
 	
-	//find next prio
-	int prio = findNextPrio(0);
 	
-	//if the active list is empty, we swap active list and expired list
-	if(prio == -1){
-		TNode** temp = activeList;
-		activeList = expiredList;
-		expiredList = temp;
-		//we find the new priority
-		prio = findNextPrio(0);
+	
+	int processNumber = currProcess;
+	
+	//if the process has no time left change the current process
+	if(processes[processNumber].timeLeft == 0){
 		
-		//if the list is still empty then return an error cause there is no process to run
+		//reinitialize timeLeft
+		processes[processNumber].timeLeft = processes[processNumber].quantum;
+		
+		//insert process in the expireList
+		insert(&expiredList[processes[processNumber].prio],processNumber,processes[processNumber].quantum);
+		
+		//find next prio
+		int prio = findNextPrio(0);
+		
+		//if the active list is empty, we swap active list and expired list
 		if(prio == -1){
-			return -1;
+			
+			//swap active and expired list
+			TNode** temp = activeList;
+			activeList = expiredList;
+			expiredList = temp;
+			
+			//we find the new priority
+			prio = findNextPrio(0);
+			
+			//if the list is still empty then return an error because there is no process to run
+			if(prio == -1){
+				return -1;
+			}
 		}
+		
+		//select new process to run
+		processNumber = remove(&activeList[prio]);
 	}
 	
-	//get the current process
-	int currentProc = activeList[prio]->procNum;
-	
-	//if the process has no time left
-	if(--processes[currProcess].timeLeft <= 0){
-		processes[currProcess].timeLeft = activeList[prio]->quantum;
-		remove(&activeList[prio]);
-		insert(&expiredList[prio],currProcess,processes[currProcess].quantum);
-	}
+	//decrement time left
+	processes[processNumber].timeLeft--;
 	
 	//return current process
-	return currentProc;
+	return processNumber;
 }
 #elif SCHEDULER_TYPE == 1
 
@@ -345,6 +360,8 @@ int addProcess(int priority)
 
 	// Add to the active list
 	insert(&activeList[priority], processes[procCount].procNum, processes[procCount].quantum);
+	
+	
 	procCount++;
 	return 0;
 }
