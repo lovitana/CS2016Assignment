@@ -96,22 +96,6 @@ int findNextPrio(int currPrio)
 
 int linuxScheduler()
 {
-	/* TODO: IMPLEMENT LINUX STYLE SCHEDULER
-		FUNCTION SHOULD RETURN PROCESS NUMBER OF THE APPROPRIATE RUNNING PROCESS
-		FOR THE CURRENT TIMERTICK.
-
-		YOU CAN ACCESS THE timerTick GLOBAL VARIABLE.
-
-		YOU HAVE TWO LISTS OF PROCESSES: queueList1 AND queueList2, AND
-		TWO POINTERS actliveList AND expiredList.
-
-		THERE IS ALSO A PROCESS TABLE CALLED processes WHICH IS SET UP
-		FOR YOU AND CONTAINS PROCESS INFORMATION. SEE THE TTCB STRUCTURE
-		FOR DETAILS.
-
-		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
-		TO IMPLEMENT SCHEDULING */
-
 	//select current process
 	int processNumber = currProcess;
 
@@ -157,68 +141,102 @@ int linuxScheduler()
 #elif SCHEDULER_TYPE == 1
 
 int RMSScheduler()
-{
-	/* TODO: IMPLEMENT RMS  STYLE SCHEDULER
-		FUNCTION SHOULD RETURN PROCESS NUMBER OF THE APPROPRIATE  RUNNING PROCESS.
-		FOR THE CURRENT TIMER TICK.
-
-		YOU CAN ACCESS THE timerTick GLOBAL VARIABLE.
-
-		YOU HAVE A VARIABLE CALLED readyQueue WHICH HOLDS A LIST OF PROCESSES
-		READY TO RUN, AND blockedQueue WHICH HOLDS A LIST OF PROCESSES THAT
-		ARE BLOCKED. THERE IS A THIRD VARIABLE currProcessNode WHICH SHOULD
-		POINT TO THE CURRENTLY RUNNING PROCESS DEQUEUED FROM readyQueue,
-		AND A VARIABLE CALLED suspended WHICH IS USED TO STORE THE INFORMATION
-		OF A PRE-EMPTED PROCESS.
-
-		THERE IS ALSO A PROCESS TABLE CALLED processes WHICH IS SET UP
-		FOR YOU AND CONTAINS PROCESS INFORMATION. SEE TTCB STRUCTURE
-		FOR MORE INFORMATION.
-
-		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
-		TO IMPLEMENT SCHEDULING */
-	// return 0;
+{	
+	/*
+	 * Check the blockedQueue for any ready process
+	 * then move all the ready processes to the readyQueue
+	 */
 	TPrioNode *readyNode = checkReady(blockedQueue, timerTick);
 
 	while (readyNode!=NULL){
-    prioRemoveNode(&blockedQueue, readyNode);
-    prioInsertNode(&readyQueue, readyNode);
+		prioRemoveNode(&blockedQueue, readyNode);
+		prioInsertNode(&readyQueue, readyNode);
 		readyNode = checkReady(blockedQueue, timerTick);
 	}
 
+	/*
+	 * check the head node of the readyQueue:
+	 * i.e: the process at the head of the readyQueue
+	 */
 	TPrioNode *node = peek(readyQueue);
 
+	// If the current process has finished running for this quantum
 	if (currProcessNode != NULL && processes[currProcessNode->procNum].timeLeft == 0){
-		if(timerTick >= processes[currProcessNode->procNum].deadline){
-			processes[currProcessNode->procNum].deadline+= processes[currProcessNode->procNum].p;
-			processes[currProcessNode->procNum].timeLeft = processes[currProcessNode->procNum].c;
+		
+		// Update the process deadline and reset the timeLeft
+		int prev_deadline = processes[currProcessNode->procNum].deadline;
+		processes[currProcessNode->procNum].deadline += processes[currProcessNode->procNum].p;
+		processes[currProcessNode->procNum].timeLeft = processes[currProcessNode->procNum].c;
+		
+		/*
+		 * If the process couldn't finish before its deadline
+		 * 		Insert the process in the readyQueue
+		 * Else (if the process finished before its deadline)
+		 * 		Insert it in the blocked queue. So it will block until the next period
+		 */
+		if(timerTick >= prev_deadline){
 			prioInsertNode(&readyQueue, currProcessNode);
 		}
 		else{
-			processes[currProcessNode->procNum].deadline += processes[currProcessNode->procNum].p;
-			processes[currProcessNode->procNum].timeLeft = processes[currProcessNode->procNum].c;
 			prioInsertNode(&blockedQueue, currProcessNode);
 		}
 
+		/*
+		 * if there is no suspended process, get the head process of the 
+		 * readyQueue to be the current process
+		 */
 		if (suspended==NULL){
 			currProcessNode = prioRemove(&readyQueue);
+			
+			//If there is no ready process left return -1
 			if (currProcessNode == NULL){
 				return -1;
 			}
-		} else if (node == NULL || (node!=NULL && suspended->p < node->p)){
+		}
+		/*
+		 * else, if there is a suspended process with higher priority 
+		 * than the head ready process:
+		 * 		 we chose to run the suspended process
+		 */
+		else if (node == NULL || (node!=NULL && suspended->p < node->p)){
 			currProcessNode = suspended;
 			suspended = NULL;
-		} else if (node!= NULL && suspended->p > node->p){
+		} 
+		/*
+		 * if the head ready process has higher priority than the suspended
+		 * process:
+		 * 		we chose to run the head ready process
+		 */
+		else if (node!= NULL && suspended->p > node->p){
 			currProcessNode = prioRemove(&readyQueue);
 		}
-	} else if (node != NULL && (currProcessNode == NULL || node->p < currProcessNode->p)){
+	}
+	
+	/*
+	 * if the head ready node has higher priority than the current 
+	 * running process:
+	 * 		we suspend the running process and run the head ready process
+	 */
+	else if (node != NULL && (currProcessNode == NULL || node->p < currProcessNode->p)){
+		
+		//if there is already a suspended process:
+		//		add it to the readyQueue
+		if(suspended != NULL){
+			prioInsertNode(&readyQueue,suspended);
+		}
+		
 		suspended = currProcessNode;
 		currProcessNode = prioRemove(&readyQueue);
-	} else if (currProcessNode == NULL && node == NULL && suspended == NULL){
+	} 
+	/*
+	 * If there is no process to run left return -1
+	 */
+	else if (currProcessNode == NULL && node == NULL && suspended == NULL){
 		return -1;
 	}
 
-	processes[currProcessNode->procNum].timeLeft -= 1;
+	//decrement timeLeft for the running process
+	processes[currProcessNode->procNum].timeLeft --;
 
 	return currProcessNode->procNum;
 }
