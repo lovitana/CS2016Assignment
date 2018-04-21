@@ -7,8 +7,8 @@
 
 /*
 
-	STUDENT 1 NUMBER: A0161321
-	STUDENT 1 NAME: Quang Tran
+	STUDENT 1 NUMBER: A0161321X
+	STUDENT 1 NAME: Tran Nhat Quang
 
 	STUDENT 2 NUMBER: A0158438U
 	STUDENT 2 NAME: Nicholas Ang
@@ -90,7 +90,7 @@ int findNextPrio(int currPrio)
 		if(activeList[i] != NULL)
 			return i;
 
-	return -1; 
+	return -1;
 
 }
 
@@ -111,46 +111,46 @@ int linuxScheduler()
 
 		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
 		TO IMPLEMENT SCHEDULING */
-	
+
 	//select current process
 	int processNumber = currProcess;
-	
+
 	//if the process has no time left change the current process
 	if(processes[processNumber].timeLeft == 0){
-		
+
 		//reinitialize timeLeft
 		processes[processNumber].timeLeft = processes[processNumber].quantum;
-		
+
 		//insert process in the expireList
 		insert(&expiredList[processes[processNumber].prio],processNumber,processes[processNumber].quantum);
-		
+
 		//find next prio
 		int prio = findNextPrio(0);
-		
+
 		//if the active list is empty, we swap active list and expired list
 		if(prio == -1){
-			
+
 			//swap active and expired list
 			TNode** temp = activeList;
 			activeList = expiredList;
 			expiredList = temp;
-			
+
 			//we find the new priority
 			prio = findNextPrio(0);
-			
+
 			//if the list is still empty then return an error because there is no process to run
 			if(prio == -1){
 				return -1;
 			}
 		}
-		
+
 		//select new process to run
 		processNumber = remove(&activeList[prio]);
 	}
-	
+
 	//decrement time left
 	processes[processNumber].timeLeft--;
-	
+
 	//return current process
 	return processNumber;
 }
@@ -171,13 +171,56 @@ int RMSScheduler()
 		AND A VARIABLE CALLED suspended WHICH IS USED TO STORE THE INFORMATION
 		OF A PRE-EMPTED PROCESS.
 
-		THERE IS ALSO A PROCESS TABLE CALLED processes WHICH IS SET UP 
+		THERE IS ALSO A PROCESS TABLE CALLED processes WHICH IS SET UP
 		FOR YOU AND CONTAINS PROCESS INFORMATION. SEE TTCB STRUCTURE
 		FOR MORE INFORMATION.
 
 		THIS FUNCTION SHOULD UPDATE THE VARIOUS QUEUES AS IS NEEDED
 		TO IMPLEMENT SCHEDULING */
-	return 0;
+	// return 0;
+	TPrioNode *readyNode = checkReady(blockedQueue, timerTick);
+
+	while (readyNode!=NULL){
+    prioRemoveNode(&blockedQueue, readyNode);
+    prioInsertNode(&readyQueue, readyNode);
+		readyNode = checkReady(blockedQueue, timerTick);
+	}
+
+	TPrioNode *node = peek(readyQueue);
+
+	if (currProcessNode != NULL && processes[currProcessNode->procNum].timeLeft == 0){
+		if(timerTick >= processes[currProcessNode->procNum].deadline){
+			processes[currProcessNode->procNum].deadline+= processes[currProcessNode->procNum].p;
+			processes[currProcessNode->procNum].timeLeft = processes[currProcessNode->procNum].c;
+			prioInsertNode(&readyQueue, currProcessNode);
+		}
+		else{
+			processes[currProcessNode->procNum].deadline += processes[currProcessNode->procNum].p;
+			processes[currProcessNode->procNum].timeLeft = processes[currProcessNode->procNum].c;
+			prioInsertNode(&blockedQueue, currProcessNode);
+		}
+
+		if (suspended==NULL){
+			currProcessNode = prioRemove(&readyQueue);
+			if (currProcessNode == NULL){
+				return -1;
+			}
+		} else if (node == NULL || (node!=NULL && suspended->p < node->p)){
+			currProcessNode = suspended;
+			suspended = NULL;
+		} else if (node!= NULL && suspended->p > node->p){
+			currProcessNode = prioRemove(&readyQueue);
+		}
+	} else if (node != NULL && (currProcessNode == NULL || node->p < currProcessNode->p)){
+		suspended = currProcessNode;
+		currProcessNode = prioRemove(&readyQueue);
+	} else if (currProcessNode == NULL && node == NULL && suspended == NULL){
+		return -1;
+	}
+
+	processes[currProcessNode->procNum].timeLeft -= 1;
+
+	return currProcessNode->procNum;
 }
 
 #endif
@@ -190,7 +233,7 @@ void timerISR()
 #elif SCHEDULER_TYPE == 1
 	currProcess = RMSScheduler();
 #endif
-	
+
 #if SCHEDULER_TYPE == 0
 	static int prevProcess=-1;
 
@@ -356,8 +399,8 @@ int addProcess(int priority)
 
 	// Add to the active list
 	insert(&activeList[priority], processes[procCount].procNum, processes[procCount].quantum);
-	
-	
+
+
 	procCount++;
 	return 0;
 }
@@ -383,5 +426,3 @@ int addProcess(int p, int c)
 
 
 #endif
-
-
