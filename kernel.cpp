@@ -198,7 +198,7 @@ int RMSScheduler()
 		 * than the head ready process:
 		 * 		 we chose to run the suspended process
 		 */
-		else if (node == NULL || (node!=NULL && suspended->p < node->p)){
+		else if (node == NULL || (node!=NULL && suspended->prio < node->prio)){
 			currProcessNode = suspended;
 			suspended = NULL;
 		} 
@@ -207,7 +207,7 @@ int RMSScheduler()
 		 * process:
 		 * 		we chose to run the head ready process
 		 */
-		else if (node!= NULL && suspended->p > node->p){
+		else if (node!= NULL && suspended->prio > node->prio){
 			currProcessNode = prioRemove(&readyQueue);
 		}
 	}
@@ -217,7 +217,7 @@ int RMSScheduler()
 	 * running process:
 	 * 		we suspend the running process and run the head ready process
 	 */
-	else if (node != NULL && (currProcessNode == NULL || node->p < currProcessNode->p)){
+	else if (node != NULL && (currProcessNode == NULL || node->prio < currProcessNode->prio)){
 		
 		//if there is already a suspended process:
 		//		add it to the readyQueue
